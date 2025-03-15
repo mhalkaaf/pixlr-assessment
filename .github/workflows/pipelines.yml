@@ -3,7 +3,7 @@ name: CI/CD Pipeline for AWS EKS
 on:
   push:
     branches:
-      - master  # Runs on push to 'main'
+      - master  # Runs on push to 'master'
 
 jobs:
   build-scan-deploy:
@@ -14,7 +14,6 @@ jobs:
       AWS_REGION: us-east-1  # Change to your AWS region
       EKS_CLUSTER_NAME: haeckal-lab
       ECR_REPOSITORY: web-app
-      IMAGE_TAG: ${{ github.sha }}
       DEPLOYMENT_NAME: web-app
 
     steps:
@@ -28,25 +27,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Get Short Commit SHA
+        id: vars
+        run: echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ env.SHORT_SHA }} .
 
       - name: Scan Image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+          image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.SHORT_SHA }}"
           format: "table"
-          exit-code: 0
+          exit-code: 0  # Allows pipeline to continue even if vulnerabilities are found
           severity: "CRITICAL,HIGH"
 
       - name: Push Image to Amazon ECR
         run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ env.SHORT_SHA }}
 
       - name: Update kubeconfig for EKS
         run: |
@@ -54,7 +57,7 @@ jobs:
 
       - name: Deploy to AWS EKS
         run: |
-          kubectl set image deployment/$DEPLOYMENT_NAME web-app=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          kubectl set image deployment/$DEPLOYMENT_NAME web-app=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${{ env.SHORT_SHA }}
           kubectl rollout status deployment/$DEPLOYMENT_NAME
 
       - name: Verify Deployment

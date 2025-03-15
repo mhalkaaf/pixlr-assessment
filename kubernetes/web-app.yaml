@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: web-app
-          image: your-dockerhub-username/nodejs-hello-world:latest # Replace with your actual image
+          image: 588738573288.dkr.ecr.us-east-1.amazonaws.com/web-app:72ba6c94c80d1dcd8fe7a90f28ec5230615f5cb4
           ports:
             - containerPort: 3000
           resources:
