@@ -1,0 +1,72 @@
+name: CI/CD Pipeline for AWS EKS
+
+on:
+  push:
+    branches:
+      - staging  # Runs on push to 'staging'
+
+jobs:
+  build-scan-deploy:
+    name: Build, Scan, and Deploy to AWS EKS
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1  # Change to your AWS region
+      EKS_CLUSTER_NAME: haeckal-lab
+      ECR_REPOSITORY: web-app
+      DEPLOYMENT_NAME: web-app
+      ENV_NAMESPACE: staging
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Short Commit SHA
+        id: vars
+        run: echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:staging-${{ env.SHORT_SHA }} .
+
+      - name: Scan Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:staging-${{ env.SHORT_SHA }}"
+          format: "table"
+          exit-code: 0  # Allows pipeline to continue even if vulnerabilities are found
+          severity: "CRITICAL,HIGH"
+
+      - name: Push Image to Amazon ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:staging-${{ env.SHORT_SHA }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+
+      - name: Deploy to AWS EKS
+        run: |
+          kubectl set image deployment/$DEPLOYMENT_NAME -n ${{ env.ENV_NAMESPACE }} web-app=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:staging-${{ env.SHORT_SHA }}
+          kubectl rollout status deployment/$DEPLOYMENT_NAME
+
+      - name: Verify Deployment
+        run: kubectl get pods -n ${{ env.ENV_NAMESPACE }} -o wide
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          echo "🚨 Deployment failed! Rolling back to the previous stable version..."
+          kubectl rollout undo deployment/$DEPLOYMENT_NAME -n ${{ env.ENV_NAMESPACE }}
+          echo "✅ Rollback complete."
