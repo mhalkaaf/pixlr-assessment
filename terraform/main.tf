@@ -133,20 +133,20 @@ resource "aws_iam_policy" "cloudwatch_agent_policy" {
 # Attach S3 Policies into IAM Role
 resource "aws_iam_policy_attachment" "ec2-policies-role-attachment" {
   name       = "ec2-policies-role-attachment"
-  roles      = [aws_iam_role.ec2-s3-role.name]
+  roles      = [aws_iam_role.ec2-role.name]
   policy_arn = aws_iam_policy.ec2-s3-policy.arn
 }
 
 # Attach CloudWatch IAM Policy to EC2 Role
 resource "aws_iam_policy_attachment" "cloudwatch_policy_attachment" {
   name       = "cloudwatch-policy-attachment"
-  roles      = [aws_iam_role.ec2-s3-role.name]
+  roles      = [aws_iam_role.ec2-role.name]
   policy_arn = aws_iam_policy.cloudwatch_agent_policy.arn
 }
 
 #Create an IAM Role
-resource "aws_iam_role" "ec2-s3-role" {
-  name = "ec2-s3-role"
+resource "aws_iam_role" "ec2-role" {
+  name = "ec2-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -166,5 +166,5 @@ resource "aws_iam_role" "ec2-s3-role" {
 # Attach IAM Role into IAM Profile
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "ec2-profile"
-  role = aws_iam_role.ec2-s3-role.name
+  role = aws_iam_role.ec2-role.name
 }
