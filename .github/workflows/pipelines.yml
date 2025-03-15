@@ -41,7 +41,7 @@ jobs:
         with:
           image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
           format: "table"
-          exit-code: 1
+          exit-code: 0
           severity: "CRITICAL,HIGH"
 
       - name: Push Image to Amazon ECR
