@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: web-app
-          image: 588738573288.dkr.ecr.us-east-1.amazonaws.com/web-app:72ba6c94c80d1dcd8fe7a90f28ec5230615f5cb4
+          image: 588738573288.dkr.ecr.us-east-1.amazonaws.com/web-app:production-40bc078
           ports:
             - containerPort: 3000
           resources:
@@ -34,8 +34,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nodejs-service
-  namespace: staging
+  name: web-app
+  namespace: production
 spec:
   selector:
     app: web-app

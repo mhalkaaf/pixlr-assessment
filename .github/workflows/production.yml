@@ -59,7 +59,7 @@ jobs:
       - name: Deploy to AWS EKS
         run: |
           kubectl set image deployment/$DEPLOYMENT_NAME -n ${{ env.ENV_NAMESPACE }} web-app=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:production-${{ env.SHORT_SHA }}
-          kubectl rollout status deployment/$DEPLOYMENT_NAME
+          kubectl rollout status deployment/$DEPLOYMENT_NAME -n ${{ env.ENV_NAMESPACE }}
 
       - name: Verify Deployment
         run: kubectl get pods -o wide -n ${{ env.ENV_NAMESPACE }}
