@@ -1,11 +1,16 @@
 {
   "name": "pixlr-assessment",
   "version": "1.0.0",
-  "description": "",
+  "description": "Pixlr assessment",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "NODE_ENV=production node ./index.js",
+    "start-dev": "nodemon ./index.js"
   },
-  "author": "",
-  "license": "ISC"
+  "author": "Muhammad Haeckal Al Kaaf",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "^3.1.9"
+  }
 }
