@@ -6,6 +6,26 @@ resource "aws_instance" "ec2-pixlr-server" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.ec2-keypair.key_name
   vpc_security_group_ids = [aws_security_group.ec2-security-group.id]
+
+  # Install CloudWatch Agent using User Data to retrieve metrics data
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo yum install -y amazon-cloudwatch-agent
+    sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOT
+    {
+      "metrics": {
+        "metrics_collected": {
+          "cpu": { "measurement": ["cpu_usage_idle"], "metrics_collection_interval": 60 },
+          "disk": { "measurement": ["used_percent"], "metrics_collection_interval": 60 },
+          "net": { "measurement": ["bytes_sent", "bytes_recv"], "metrics_collection_interval": 60 }
+        }
+      }
+    }
+    EOT
+    sudo systemctl enable amazon-cloudwatch-agent
+    sudo systemctl start amazon-cloudwatch-agent
+  EOF
+
   tags = {
     Name        = "hello-world"
     Terraform   = "true"
@@ -61,7 +81,13 @@ resource "aws_security_group" "ec2-security-group" {
   }
 }
 
-# Create Iam Policy for Iam Role
+# Create CloudWatch Log Group for retrieving logs
+resource "aws_cloudwatch_log_group" "ec2_log_group" {
+  name              = "/aws/ec2/pixlr-server"
+  retention_in_days = 7 # How many days that data need to be stored
+}
+
+# Create S3 Policy for EC2
 resource "aws_iam_policy" "ec2-s3-policy" {
   name        = "EC2-S3-Bucket-Access-Policy"
   description = "Provides permission to access S3"
@@ -81,6 +107,42 @@ resource "aws_iam_policy" "ec2-s3-policy" {
   })
 }
 
+# CloudWatch Agent IAM Policy to publish logs and metrics to CloudWatch
+resource "aws_iam_policy" "cloudwatch_agent_policy" {
+  name        = "CloudWatchAgentServerPolicy"
+  description = "Allows EC2 instances to publish logs and metrics to CloudWatch"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricData",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams",
+          "logs:CreateLogGroup"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach S3 Policies into IAM Role
+resource "aws_iam_policy_attachment" "ec2-policies-role-attachment" {
+  name       = "ec2-policies-role-attachment"
+  roles      = [aws_iam_role.ec2-s3-role.name]
+  policy_arn = aws_iam_policy.ec2-s3-policy.arn
+}
+
+# Attach CloudWatch IAM Policy to EC2 Role
+resource "aws_iam_policy_attachment" "cloudwatch_policy_attachment" {
+  name       = "cloudwatch-policy-attachment"
+  roles      = [aws_iam_role.ec2-s3-role.name]
+  policy_arn = aws_iam_policy.cloudwatch_agent_policy.arn
+}
 
 #Create an IAM Role
 resource "aws_iam_role" "ec2-s3-role" {
@@ -99,13 +161,6 @@ resource "aws_iam_role" "ec2-s3-role" {
       },
     ]
   })
-}
-
-# Attach IAM Policies into IAM Role
-resource "aws_iam_policy_attachment" "ec2-policies-role-attachment" {
-  name       = "ec2-policies-role-attachment"
-  roles      = [aws_iam_role.ec2-s3-role.name]
-  policy_arn = aws_iam_policy.ec2-s3-policy.arn
 }
 
 # Attach IAM Role into IAM Profile
