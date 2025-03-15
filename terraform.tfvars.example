@@ -1,0 +1,5 @@
+# Terraform tfvars example
+aws_region              = "valueofregion"
+ec2_instance_type       = "valueofinstancetype"
+ec2_ami_id              = "valueofamiid"
+ssh_ingress_cidr_blocks = ["yourpublicipaddress"]
