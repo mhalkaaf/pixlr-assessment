@@ -5,7 +5,7 @@ FROM node:22
 WORKDIR /app
 
 # Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
 # Install dependencies (if any)
 RUN npm install
@@ -17,4 +17,5 @@ COPY . .
 EXPOSE 3000
 
 # Command to run the application
-CMD ["node", "index.js"]
+ENTRYPOINT ["npm", "run"]
+CMD ["start"]
