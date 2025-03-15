@@ -83,3 +83,4 @@ I chose GitHub Actions instead of Jenkins and GitLab CI/CD for the CI/CD pipelin
 - Unlike Jenkins, which requires a dedicated server and maintenance, GitHub Actions is a fully managed CI/CD solution, reducing the need for infrastructure setup, monitoring, and scaling.
 - For open-source projects, GitHub Actions provides free CI/CD minutes, while Jenkins requires hosting, which incurs server costs.
 
+![Image](https://github.com/user-attachments/assets/dbdbd61e-8d32-4f94-b2be-1123ad64b22a)
