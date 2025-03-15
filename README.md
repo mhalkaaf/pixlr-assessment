@@ -18,6 +18,23 @@ The Terraform configuration deploys the following AWS resources:
 - IAM Role (To assign permissions to the EC2 instance).
 - IAM Instance Profile (To associate the IAM role with the EC2 instance).
 
+#### How to Execute Terraform configuration
+- The Terraform configuration files for provisioning resources are stored in the `terraform` folder. Navigate to the `terraform` folder to proceed.
+- Create a `terraform.tfvars` file by using the format provided in `terraform.tfvars.example`, and fill it in with the necessary configuration values.
+- To deploy the resources, execute the following command:
+
+```bash
+  terraform fmt 
+  terraform validate
+  terraform plan
+  terraform apply -auto-approve
+```
+- To destroy resource, execute this command : 
+
+```bash
+  terraform destroy -auto-approve
+```
+
 ### Monitoring and Metrics Explanation
 
 #### CPU Usage (cpu_usage_idle)
