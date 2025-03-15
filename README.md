@@ -87,7 +87,7 @@ I chose GitHub Actions instead of Jenkins and GitLab CI/CD for the CI/CD pipelin
 
 #### How the pipeline works ?
 
-- The developer first develops several features and tests them locally. After multiple local tests, the developer pushes the code to the staging branch.
+- The developer begins by implementing several features and testing them locally. In this case, I built a simple Node.js application that returns "Hello, World." After multiple local tests, the developer pushes the code to the staging branch.
 - Pushing to the staging branch triggers the GitHub Actions pipeline.
 - The pipeline executes several stages, including building the Docker image, scanning the image for vulnerabilities using Trivy, and then automatically deploying the application to Amazon Elastic Kubernetes Service (EKS) within the staging namespace.
 - The environment is divided into staging and production. The staging environment uses the staging namespace in EKS and the production environment uses the production namespace in EKS.
@@ -96,3 +96,4 @@ I chose GitHub Actions instead of Jenkins and GitLab CI/CD for the CI/CD pipelin
 - If no issues, errors, or bugs are found, the lead approves and merges the Pull Request into the master branch.
 - This triggers the GitHub Actions pipeline for production, which follows the same steps like Building the Docker image, scanning the image with Trivy, and then deploying the application to the production namespace in EKS.
 - If the deployment pipeline fails due to an issue (e.g., code errors, incorrect image names, or failed health checks), an automatic rollback is executed, reverting to the previous stable image to maintain service availability.
+- All pipeline runs can be viewed in the Actions tab on GitHub.
